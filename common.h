@@ -2,6 +2,9 @@
 
 constexpr double POSITIVE_INFINITY = std::numeric_limits<double>::infinity();
 constexpr double PI = M_PI;
+constexpr Vec3 white_color(1.0, 1.0, 1.0);
+constexpr Vec3 blue_color(0.5, 0.7, 1.0);
+constexpr Vec3 green_color(0.5, 1.0, 0.7);
 
 inline double degrees_to_radians(double degrees) {
   return degrees * PI / 180.0;
@@ -21,4 +24,27 @@ inline double clamp(double x, double min, double max) {
     if (x < min) return min;
     if (x > max) return max;
     return x;
+}
+
+inline Vec3 random_in_unit_sphere() {
+    while (true) {
+        Vec3 u{random_double(), random_double(), random_double()};
+        if (u.length_squared() <= 1.0) {
+            return u;
+        }
+    }
+}
+
+inline Vec3 random_unit_vector() {
+    return unit_vector(random_in_unit_sphere());
+}
+
+inline Vec3 random_in_hemisphere(const Vec3& normal) {
+    Vec3 in_unit_sphere = random_in_unit_sphere();
+    if (dot(in_unit_sphere, normal) > 0.0)  {
+        // In the same hemisphere as the normal.
+        return in_unit_sphere;
+    } else {
+        return -in_unit_sphere;
+    }
 }

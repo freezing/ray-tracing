@@ -90,15 +90,20 @@ private:
 
 };
 
-Vec3 ray_color(const Ray& ray, const World& world) {
-  std::optional<HitRecord> hit_record = world.hit(ray, 0.0, INFINITY);
+Vec3 ray_color(const Ray& ray, const World& world, int depth) {
+  if (depth <= 0) {
+    // No more light is gathered if the ray bounce limit is exceeded.
+    return Vec3{0, 0, 0};
+  }
+
+  std::optional<HitRecord> hit_record = world.hit(ray, 0.001, INFINITY);
 
   if (hit_record) {
-    return 0.5 * (hit_record->normal + Vec3(1, 1, 1));
+    Vec3 target = hit_record->point + random_in_hemisphere(hit_record->normal);
+    Ray new_ray{hit_record->point, target - hit_record->point};
+    return 0.5 * ray_color(new_ray, world, depth - 1);
   } else {
     Vec3 unit_direction = unit_vector(ray.direction());
-    const Vec3 white_color(1.0, 1.0, 1.0);
-    const Vec3 blue_color(0.5, 0.7, 1.0);
     double t = 0.5 * (unit_direction.y() + 1.0);
     return lerp_vector(t, white_color, blue_color);
   }
@@ -110,6 +115,7 @@ int main(int argc, char** argv) {
   const int image_width = 1920;
   const int image_height = static_cast<int>(image_width / aspect_ratio);
   const int samples_per_pixel = 100;
+  const int max_ray_bounce_depth = 50;
 
   std::cerr << "Image size: " << image_width << ", " << image_height << std::endl;
 
@@ -132,8 +138,7 @@ int main(int argc, char** argv) {
         double u = (double(col) + random_double()) / (image_width - 1);
         double v = (double(row) + random_double()) / (image_height - 1);
         Ray ray = camera.ray_at(u, v);
-        pixel_color += ray_color(ray, world);
-        
+        pixel_color += ray_color(ray, world, max_ray_bounce_depth);
       }
       pixel_color /= samples_per_pixel;
       write_pixel(std::cout, pixel_color);
