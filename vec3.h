@@ -57,6 +57,10 @@ public:
         return sqr(e[0]) + sqr(e[1]) + sqr(e[2]);
     }
 
+    constexpr bool is_near_zero(double eps = 0.001) const {
+        return abs(e[0]) < eps && abs(e[1]) < eps && abs(e[2]) < eps;
+    }
+
 
 private:
     double e[3];
@@ -71,6 +75,10 @@ inline Vec3 operator + (const Vec3& lhs, const Vec3& rhs) {
 
 inline Vec3 operator - (const Vec3& lhs, const Vec3& rhs) {
     return lhs + (-rhs);
+}
+
+inline Vec3 operator * (const Vec3& lhs, const Vec3& rhs) {
+    return Vec3(lhs[0] * rhs[0], lhs[1] * rhs[1], lhs[2] * rhs[2]);
 }
 
 inline Vec3 operator * (const Vec3& v, double t) {
