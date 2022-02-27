@@ -21,7 +21,7 @@ struct HitVisitorFn {
   const Ray& ray;
   const Material& material;
 
-  std::tuple<Vec3, bool> calculate_normal_and_outside_face(const Vec3& outward_normal) {
+  std::tuple<Vec3, bool> calculate_normal_and_front_face(const Vec3& outward_normal) {
     if (dot(ray.direction(), outward_normal) > 0.0) {
       return {-outward_normal, false};
     } else {
@@ -41,8 +41,8 @@ struct HitVisitorFn {
       double t = (-b - sqrt(discriminant)) / (2.0 * a);
       Vec3 point = ray.at(t);
       Vec3 outward_normal = unit_vector(point - sphere.center());
-      auto [normal, outside_face] = calculate_normal_and_outside_face(outward_normal);      
-      return {{point, normal, t, outside_face, material}};
+      auto [normal, front_face] = calculate_normal_and_front_face(outward_normal);      
+      return {{point, normal, t, front_face, material}};
     }
   }
 };
@@ -127,14 +127,15 @@ int main(int argc, char** argv) {
 
   constexpr Material material_ground = LambertianMaterial{ground_color};
   constexpr Material material_center = LambertianMaterial{center_color};
-  constexpr Material material_left = MetalMaterial{left_color, 0.3};
-  constexpr Material material_right = MetalMaterial{right_color, 1.0};
+  constexpr Material material_left = DielectricMaterial{1.5};
+  constexpr Material material_right = MetalMaterial{right_color, 0.5};
 
   // World
   World world;
   world.add(Sphere({0, -100.5, -1}, 100), material_ground);
   world.add(Sphere({0, 0, -1}, 0.5), material_center);
   world.add(Sphere({-1, 0, -1}, 0.5), material_left);
+  world.add(Sphere({-1, -0, -1}, -0.4), material_left);
   world.add(Sphere({1, 0, -1}, 0.5), material_right);
 
   // Render

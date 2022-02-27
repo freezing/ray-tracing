@@ -5,6 +5,7 @@
         "array": "cpp",
         "string_view": "cpp",
         "vector": "cpp",
-        "optional": "cpp"
+        "optional": "cpp",
+        "variant": "cpp"
     }
 }
