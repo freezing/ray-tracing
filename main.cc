@@ -17,33 +17,37 @@
 
 using Object = std::variant<Sphere>;
 
+std::tuple<Vec3, bool> calculate_normal_and_front_face(const Ray& ray, const Vec3& outward_normal) {
+  if (dot(ray.direction(), outward_normal) > 0.0) {
+    return {-outward_normal, false};
+  } else {
+    return {outward_normal, true};
+  }
+}
+
+std::optional<HitRecord> hit_sphere(const Ray& ray, const Material& material, const Sphere& sphere) {
+    Vec3 d_center = ray.origin() - sphere.center();
+    double a = ray.direction().length_squared();
+    double half_b = dot(d_center, ray.direction());
+    double c = d_center.length_squared() - sqr(sphere.radius());
+    double discriminant = half_b * half_b - a * c;
+    if (discriminant <= 0) {
+      return {};
+    } else {
+      double t = (-half_b - sqrt(discriminant)) / a;
+      Vec3 point = ray.at(t);
+      Vec3 outward_normal = unit_vector(point - sphere.center());
+      auto [normal, front_face] = calculate_normal_and_front_face(ray, outward_normal);      
+      return {{point, normal, t, front_face, material}};
+    }
+}
+
 struct HitVisitorFn {
   const Ray& ray;
   const Material& material;
 
-  std::tuple<Vec3, bool> calculate_normal_and_front_face(const Vec3& outward_normal) {
-    if (dot(ray.direction(), outward_normal) > 0.0) {
-      return {-outward_normal, false};
-    } else {
-      return {outward_normal, true};
-    }
-  }
-
   std::optional<HitRecord> operator() (const Sphere& sphere) {
-    Vec3 d_center = ray.origin() - sphere.center();
-    double a = ray.direction().length_squared();
-    double b = 2.0 * dot(d_center, ray.direction());
-    double c = d_center.length_squared() - sqr(sphere.radius());
-    double discriminant = b * b - 4 * a * c;
-    if (discriminant <= 0) {
-      return {};
-    } else {
-      double t = (-b - sqrt(discriminant)) / (2.0 * a);
-      Vec3 point = ray.at(t);
-      Vec3 outward_normal = unit_vector(point - sphere.center());
-      auto [normal, front_face] = calculate_normal_and_front_face(outward_normal);      
-      return {{point, normal, t, front_face, material}};
-    }
+    return hit_sphere(ray, material, sphere);
   }
 };
 
@@ -163,7 +167,7 @@ int main(int argc, char** argv) {
   constexpr double vertical_field_of_view = 45.0;
   constexpr double aperture = 0.1;
   const double focus_distance = 10.0;
-  Camera camera(origin, look_at, view_up, vertical_field_of_view, aspect_ratio, aperture, focus_distance);
+  const Camera camera(origin, look_at, view_up, vertical_field_of_view, aspect_ratio, aperture, focus_distance);
 
   // Materials
   constexpr Vec3 center_color(0.7, 0.3, 0.3);
