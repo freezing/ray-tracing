@@ -35,6 +35,14 @@ public:
         return pixel_color;
     }
 
+    int image_height() const {
+        return image_height_;
+    }
+
+    int image_width() const {
+        return image_width_;
+    }
+
 private:
     const World& world_;
     const Camera& camera_;
