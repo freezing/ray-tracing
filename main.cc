@@ -117,7 +117,7 @@ int main(int argc, char** argv) {
   const int num_cores = 32;
   std::cerr << "Number of cores:" << ' ' << num_cores << std::endl << std::flush;
 
-  Renderer renderer{world, camera, image_width, image_height, samples_per_pixel, max_ray_bounce_depth};
+  Renderer renderer{big_world, camera, image_width, image_height, samples_per_pixel, max_ray_bounce_depth};
 
   RenderedImage rendered_image = ParallelRenderer{renderer}.render(num_cores);
 
