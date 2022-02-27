@@ -15,28 +15,7 @@
 #include "ppm.h"
 #include "hit_record.h"
 #include "engine.h"
-
-Vec3 ray_color(const Ray& ray, const World& world, int depth) {
-  if (depth <= 0) {
-    // No more light is gathered if the ray bounce limit is exceeded.
-    return black_color;
-  }
-
-  Engine engine{};
-  std::optional<HitRecord> hit_record = engine.hit_world(world, ray, 0.001, INFINITY);
-
-  if (hit_record) {
-    auto scattered_ray = std::visit(ScatterMaterialFn{ray, as_scatter_info(*hit_record)}, hit_record->material);
-    if (!scattered_ray) {
-      return black_color;
-    }
-    return scattered_ray->attenuation_color * ray_color(scattered_ray->ray, world, depth - 1);
-  } else {
-    Vec3 unit_direction = unit_vector(ray.direction());
-    double t = 0.5 * (unit_direction.y() + 1.0);
-    return lerp_vector(t, white_color, blue_color);
-  }
-}
+#include "renderer.h"
 
 Material choose_material() {
       double random_sample = random_double();
@@ -73,6 +52,10 @@ World random_world() {
       }
     }
   }
+
+  world.add(Sphere({0, 1, 0}, 1.0), DielectricMaterial{1.5});
+  world.add(Sphere({-4, 1, 0}, 1.0), LambertianMaterial{Vec3{0.4, 0.2, 0.1}});
+  world.add(Sphere({4, 1, 0}, 1.0), MetalMaterial{{0.7, 0.6, 0.5}, 0.0});
 
   return world;
 }
@@ -122,23 +105,18 @@ int main(int argc, char** argv) {
   another_world.add(Sphere({-R, 0, -1}, R), lambertian_blue);
   another_world.add(Sphere({R, 0, -1}, R), lambertian_red);
 
-  // Random big world.
+  // Random big world
   World big_world = random_world();
 
   // Render
   std::cout << "P3" << std::endl << image_width << ' ' << image_height << std::endl << 255 << std::endl;
 
+  Renderer renderer{world, camera, image_width, image_height, samples_per_pixel, max_ray_bounce_depth};
+
   for (int row = image_height - 1; row >= 0; row--) {
     std::cerr << "\rScanlines remaining: " << (row) << ' ' << std::flush;
     for (int col = 0; col < image_width; col++) {
-      Vec3 pixel_color{0, 0, 0};
-      for (int s = 0; s < samples_per_pixel; s++) {
-        double u = (double(col) + random_double()) / (image_width - 1);
-        double v = (double(row) + random_double()) / (image_height - 1);
-        Ray ray = camera.ray_at(u, v);
-        pixel_color += ray_color(ray, big_world, max_ray_bounce_depth);
-      }
-      pixel_color /= samples_per_pixel;
+      Vec3 pixel_color = renderer.color_at(row, col);
       write_pixel(std::cout, pixel_color);
     }
   }

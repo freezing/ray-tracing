@@ -56,6 +56,29 @@ namespace detail {
 
 class Engine {
 public:
+  Vec3 ray_color(const Ray& ray, const World& world, int depth) {
+    if (depth <= 0) {
+      // No more light is gathered if the ray bounce limit is exceeded.
+      return black_color;
+    }
+
+    Engine engine{};
+    std::optional<HitRecord> hit_record = engine.hit_world(world, ray, 0.001, INFINITY);
+
+    if (hit_record) {
+      auto scattered_ray = std::visit(ScatterMaterialFn{ray, as_scatter_info(*hit_record)}, hit_record->material);
+      if (!scattered_ray) {
+        return black_color;
+      }
+      return scattered_ray->attenuation_color * ray_color(scattered_ray->ray, world, depth - 1);
+    } else {
+      Vec3 unit_direction = unit_vector(ray.direction());
+      double t = 0.5 * (unit_direction.y() + 1.0);
+      return lerp_vector(t, white_color, blue_color);
+    }
+  }
+
+private:
   std::optional<HitRecord> hit_world(const World& world, const Ray& ray, double t_min, double t_max) {
     std::optional<HitRecord> closest_hit;
     for (const auto& [object, material] : world.objects()) {
