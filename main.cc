@@ -1,10 +1,14 @@
 #include <iostream>
 #include <assert.h>
+#include <mutex>
+#include <map>
+#include <assert.h>
 #include <math.h>
 #include <vector>
 #include <tuple>
 #include <variant>
 #include <optional>
+#include <thread>
 
 #include "camera.h"
 #include "common.h"
@@ -16,6 +20,8 @@
 #include "hit_record.h"
 #include "engine.h"
 #include "renderer.h"
+#include "task_splitter.h"
+#include "task_renderer.h"
 
 Material choose_material() {
       double random_sample = random_double();
@@ -109,15 +115,70 @@ int main(int argc, char** argv) {
   World big_world = random_world();
 
   // Render
-  std::cout << "P3" << std::endl << image_width << ' ' << image_height << std::endl << 255 << std::endl;
-
   Renderer renderer{world, camera, image_width, image_height, samples_per_pixel, max_ray_bounce_depth};
 
+  struct RenderedImage {
+    std::map<PixelLocation, Vec3> pixels;
+
+    void add(const RenderedImage& image) {
+      for (const auto& entry : image.pixels) {
+        pixels.insert(entry);
+      }
+    }
+  };
+
+  const int num_cores = 32;
+  auto tasks = split_tasks(image_height, image_width, num_cores);
+  std::cerr << "Number of cores:" << ' ' << num_cores << std::endl << std::flush;
+
+  for (const auto& tasks_per_core : tasks) {
+    std::cerr << "  Num tasks[" << tasks_per_core.core_id << "]: " << tasks_per_core.tasks.size() << std::endl << std::flush;
+  }
+
+  std::vector<RenderedImage> rendered_images;
+  rendered_images.resize(num_cores);
+
+  std::vector<std::thread> threads;
+  for (const auto& tasks_per_core : tasks) {
+    std::thread thread([&renderer, &tasks_per_core, &rendered_images]() mutable {
+      auto& rendered_image = rendered_images[tasks_per_core.core_id];
+      for (const auto& task : tasks_per_core.tasks) {
+        auto result = render_task(tasks_per_core.core_id, task, renderer, tasks_per_core.core_id == 0);
+        // Populate result in the rendered_image map.
+        for (std::size_t i = 0; i < result.pixels.size(); i++) {
+          auto location = result.location_of(i);
+          rendered_image.pixels[location] = result.pixels[i];
+        }
+      }
+    });
+    threads.push_back(std::move(thread));
+  }
+
+  // Merge image parts into one image.
+  for (auto& thread : threads) {
+    thread.join();
+  }
+
+  RenderedImage rendered_image = std::move(rendered_images[0]);
+  for (std::size_t i = 1; i < rendered_images.size(); i++) {
+    rendered_image.add(rendered_images[i]);
+  }
+
+  // Save in file
+  std::cout << "P3" << std::endl << image_width << ' ' << image_height << std::endl << 255 << std::endl;
+
   for (int row = image_height - 1; row >= 0; row--) {
-    std::cerr << "\rScanlines remaining: " << (row) << ' ' << std::flush;
+    std::cerr << "\rScanlines remaining: " << (row) << ' ' << std::endl << std::flush;
     for (int col = 0; col < image_width; col++) {
-      Vec3 pixel_color = renderer.color_at(row, col);
-      write_pixel(std::cout, pixel_color);
+      PixelLocation location{col, row};
+      auto it = rendered_image.pixels.find(location);
+      if (it != rendered_image.pixels.end()) {
+        Vec3 pixel_color = it->second;
+        write_pixel(std::cout, pixel_color);
+      } else {
+        assert(false);
+        std::cerr << "Missing pixel at location: " << to_debug(location) << std::endl;
+      }
     }
   }
 

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <math.h>
+#include <string>
+#include <sstream>
 #include <iostream>
 
 namespace {
@@ -109,4 +111,10 @@ inline Vec3 unit_vector(const Vec3& v) {
 
 inline Vec3 lerp_vector(double t, const Vec3& start, const Vec3& end) {
     return (1.0 - t) * start + t * end;
+}
+
+std::string to_debug(const Vec3& v) {
+    std::stringstream ss;
+    ss << "(" << v[0] << ", " << v[1] << ", " << v[2] << ")";
+    return ss.str();
 }

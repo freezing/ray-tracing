@@ -23,7 +23,7 @@ public:
     , max_ray_bounce_depth_{max_ray_bounce_depth} {}
 
     Vec3 color_at(int row, int col) const {
-        Engine engine{};    
+        Engine engine{};
         Vec3 pixel_color{0, 0, 0};
         for (int s = 0; s < samples_per_pixel_; s++) {
             double u = (double(col) + random_double()) / (image_width_ - 1);
