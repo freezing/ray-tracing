@@ -41,6 +41,10 @@ inline Vec3 random_in_unit_sphere() {
     }
 }
 
+inline Vec3 random_vector(double min, double max) {
+    return {random_double(min, max), random_double(min, max), random_double(min, max)};
+}
+
 inline Vec3 random_unit_vector() {
     return unit_vector(random_in_unit_sphere());
 }

@@ -107,23 +107,62 @@ Vec3 ray_color(const Ray& ray, const World& world, int depth) {
   }
 }
 
+Material choose_material() {
+      double random_sample = random_double();
+      if (random_sample < 0.8) {
+        // Diffuse.
+        Vec3 albedo = random_unit_vector() * random_unit_vector();
+        return LambertianMaterial{albedo};
+      } else if (random_sample < 0.95) {
+        // Metal.
+        Vec3 albedo = random_vector(0.5, 1);
+        double fuzz = random_double(0, 0.5);
+        return MetalMaterial{albedo, fuzz};
+      } else {
+        // Glass.
+        return DielectricMaterial{.refraction_index = 1.5};
+      }
+}
+
+World random_world() {
+  World world;
+
+  // Add ground (a very large sphere).
+  Material ground_material = LambertianMaterial{Vec3(0.5, 0.5, 0.5)};
+  world.add(Sphere(Vec3(0, -1000, 0), 1000), ground_material);
+
+  for (int x = -11; x < 11; x++) {
+    for (int z = -11; z < 11; z++) {
+      Vec3 center{x + 0.9 * random_double(), 0.2, z + 0.9 * random_double()};
+      double radius = 0.2;
+
+      if ((center - Vec3{4, 0.2, 0}).length() > 0.9) {
+        Material material = choose_material();
+        world.add(Sphere(std::move(center), radius), material);
+      }
+    }
+  }
+
+  return world;
+}
+
 int main(int argc, char** argv) {
   // Image
   const double aspect_ratio = 16.0 / 9.0;
   const int image_width = 1920;
   const int image_height = static_cast<int>(image_width / aspect_ratio);
-  const int samples_per_pixel = 100;
+  const int samples_per_pixel = 500;
   const int max_ray_bounce_depth = 50;
 
   std::cerr << "Image size: " << image_width << ", " << image_height << std::endl;
 
   // Camera
-  constexpr Vec3 origin{3, 3, 2};
-  constexpr Vec3 look_at{0, 0, -1};
+  constexpr Vec3 origin{13, 2, 3};
+  constexpr Vec3 look_at{0, 0, 0};
   constexpr Vec3 view_up{0, 1, 0};
   constexpr double vertical_field_of_view = 45.0;
-  constexpr double aperture = 2.0;
-  const double focus_distance = (origin - look_at).length();
+  constexpr double aperture = 0.1;
+  const double focus_distance = 10.0;
   Camera camera(origin, look_at, view_up, vertical_field_of_view, aspect_ratio, aperture, focus_distance);
 
   // Materials
@@ -152,6 +191,9 @@ int main(int argc, char** argv) {
   another_world.add(Sphere({-R, 0, -1}, R), lambertian_blue);
   another_world.add(Sphere({R, 0, -1}, R), lambertian_red);
 
+  // Random big world.
+  World big_world = random_world();
+
   // Render
   std::cout << "P3" << std::endl << image_width << ' ' << image_height << std::endl << 255 << std::endl;
 
@@ -163,7 +205,7 @@ int main(int argc, char** argv) {
         double u = (double(col) + random_double()) / (image_width - 1);
         double v = (double(row) + random_double()) / (image_height - 1);
         Ray ray = camera.ray_at(u, v);
-        pixel_color += ray_color(ray, world, max_ray_bounce_depth);
+        pixel_color += ray_color(ray, big_world, max_ray_bounce_depth);
       }
       pixel_color /= samples_per_pixel;
       write_pixel(std::cout, pixel_color);
