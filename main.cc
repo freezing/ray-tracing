@@ -118,10 +118,13 @@ int main(int argc, char** argv) {
   std::cerr << "Image size: " << image_width << ", " << image_height << std::endl;
 
   // Camera
-  constexpr Vec3 origin{-2, 2, 1};
+  constexpr Vec3 origin{3, 3, 2};
   constexpr Vec3 look_at{0, 0, -1};
   constexpr Vec3 view_up{0, 1, 0};
-  Camera camera(origin, look_at, view_up, 20.0, aspect_ratio);
+  constexpr double vertical_field_of_view = 45.0;
+  constexpr double aperture = 2.0;
+  const double focus_distance = (origin - look_at).length();
+  Camera camera(origin, look_at, view_up, vertical_field_of_view, aspect_ratio, aperture, focus_distance);
 
   // Materials
   constexpr Vec3 center_color(0.7, 0.3, 0.3);

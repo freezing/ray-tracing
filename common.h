@@ -54,3 +54,12 @@ inline Vec3 random_in_hemisphere(const Vec3& normal) {
         return -in_unit_sphere;
     }
 }
+
+inline Vec3 random_in_unit_disk() {
+    while (true) {
+        Vec3 p{random_double(-1, 1), random_double(-1, 1), 0};
+        if (p.length_squared() < 1.0) {
+            return p;
+        }
+    }
+}
