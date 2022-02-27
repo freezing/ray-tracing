@@ -14,81 +14,7 @@
 #include "sphere.h"
 #include "ppm.h"
 #include "hit_record.h"
-
-using Object = std::variant<Sphere>;
-
-std::tuple<Vec3, bool> calculate_normal_and_front_face(const Ray& ray, const Vec3& outward_normal) {
-  if (dot(ray.direction(), outward_normal) > 0.0) {
-    return {-outward_normal, false};
-  } else {
-    return {outward_normal, true};
-  }
-}
-
-std::optional<HitRecord> hit_sphere(const Ray& ray, const Material& material, const Sphere& sphere) {
-    Vec3 d_center = ray.origin() - sphere.center();
-    double a = ray.direction().length_squared();
-    double half_b = dot(d_center, ray.direction());
-    double c = d_center.length_squared() - sqr(sphere.radius());
-    double discriminant = half_b * half_b - a * c;
-    if (discriminant <= 0) {
-      return {};
-    } else {
-      double t = (-half_b - sqrt(discriminant)) / a;
-      Vec3 point = ray.at(t);
-      Vec3 outward_normal = unit_vector(point - sphere.center());
-      auto [normal, front_face] = calculate_normal_and_front_face(ray, outward_normal);      
-      return {{point, normal, t, front_face, material}};
-    }
-}
-
-struct HitVisitorFn {
-  const Ray& ray;
-  const Material& material;
-
-  std::optional<HitRecord> operator() (const Sphere& sphere) {
-    return hit_sphere(ray, material, sphere);
-  }
-};
-
-std::optional<HitRecord> hit_object(const Ray& ray, const Object& object, const Material& material) {
-  return std::visit(HitVisitorFn{ray, material}, object);
-}
-
-class World {
-public:
-  World() {}
-  
-  void clear() {
-    objects_.clear();
-  }
-
-  void add(Object&& object, Material material) {
-    objects_.push_back({std::move(object), std::move(material)});
-  }
-
-  std::optional<HitRecord> hit(const Ray& ray, double t_min, double t_max) const {
-    std::optional<HitRecord> closest_hit;
-    for (const auto& [object, material] : objects_) {
-      std::optional<HitRecord> hit_record = hit_object(ray, object, material);
-      double upper_bound = closest_hit ? closest_hit->t : t_max;
-      if (hit_record && is_within_bounds(hit_record->t, t_min, upper_bound)) {
-        closest_hit = hit_record;
-      }
-    }
-    assert(!closest_hit || is_within_bounds(closest_hit->t, t_min, t_max));
-    return closest_hit;
-  }
-
-
-private:
-  std::vector<std::tuple<Object, Material>> objects_;
-
-  static bool is_within_bounds(double x, double min, double max) {
-    return min <= x && x <= max;
-  }
-
-};
+#include "engine.h"
 
 Vec3 ray_color(const Ray& ray, const World& world, int depth) {
   if (depth <= 0) {
@@ -96,7 +22,8 @@ Vec3 ray_color(const Ray& ray, const World& world, int depth) {
     return black_color;
   }
 
-  std::optional<HitRecord> hit_record = world.hit(ray, 0.001, INFINITY);
+  Engine engine{};
+  std::optional<HitRecord> hit_record = engine.hit_world(world, ray, 0.001, INFINITY);
 
   if (hit_record) {
     auto scattered_ray = std::visit(ScatterMaterialFn{ray, as_scatter_info(*hit_record)}, hit_record->material);
