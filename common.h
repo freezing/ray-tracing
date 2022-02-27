@@ -1,5 +1,7 @@
 #pragma once
 
+#include "vec3.h"
+
 constexpr double POSITIVE_INFINITY = std::numeric_limits<double>::infinity();
 constexpr double PI = M_PI;
 constexpr Vec3 black_color(0, 0, 0);
@@ -7,6 +9,8 @@ constexpr Vec3 white_color(1.0, 1.0, 1.0);
 constexpr Vec3 blue_color(0.5, 0.7, 1.0);
 constexpr Vec3 green_color(0.5, 1.0, 0.7);
 constexpr Vec3 ground_color(0.8, 0.8, 0.0);
+constexpr Vec3 pure_blue_color(0.0, 0.0, 1.0);
+constexpr Vec3 pure_red_color(1.0, 0.0, 0.0);
 
 inline double degrees_to_radians(double degrees) {
   return degrees * PI / 180.0;

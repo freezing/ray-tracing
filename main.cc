@@ -118,7 +118,10 @@ int main(int argc, char** argv) {
   std::cerr << "Image size: " << image_width << ", " << image_height << std::endl;
 
   // Camera
-  Camera camera;
+  constexpr Vec3 origin{-2, 2, 1};
+  constexpr Vec3 look_at{0, 0, -1};
+  constexpr Vec3 view_up{0, 1, 0};
+  Camera camera(origin, look_at, view_up, 20.0, aspect_ratio);
 
   // Materials
   constexpr Vec3 center_color(0.7, 0.3, 0.3);
@@ -129,6 +132,8 @@ int main(int argc, char** argv) {
   constexpr Material material_center = LambertianMaterial{center_color};
   constexpr Material material_left = DielectricMaterial{1.5};
   constexpr Material material_right = MetalMaterial{right_color, 0.5};
+  constexpr Material lambertian_blue = LambertianMaterial{pure_blue_color};
+  constexpr Material lambertian_red = LambertianMaterial{pure_red_color};
 
   // World
   World world;
@@ -137,6 +142,12 @@ int main(int argc, char** argv) {
   world.add(Sphere({-1, 0, -1}, 0.5), material_left);
   world.add(Sphere({-1, -0, -1}, -0.4), material_left);
   world.add(Sphere({1, 0, -1}, 0.5), material_right);
+
+  // Another world
+  const double R = cos(PI / 4.0);
+  World another_world;
+  another_world.add(Sphere({-R, 0, -1}, R), lambertian_blue);
+  another_world.add(Sphere({R, 0, -1}, R), lambertian_red);
 
   // Render
   std::cout << "P3" << std::endl << image_width << ' ' << image_height << std::endl << 255 << std::endl;

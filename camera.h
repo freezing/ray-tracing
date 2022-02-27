@@ -1,20 +1,25 @@
 #pragma once
 
+#include "common.h"
 #include "vec3.h"
 #include "ray.h"
 
 class Camera {
 public:
-    Camera() {
-        double aspect_ratio = 16.0 / 9.0;
-        double viewport_height = 2.0;
+    Camera(Vec3 origin, Vec3 look_at, Vec3 view_up, double vertical_fov_degrees, double aspect_ratio) {
+        double theta = degrees_to_radians(vertical_fov_degrees);
+        double h = tan(theta / 2.0);
+        double viewport_height = 2.0 * h;
         double viewport_width = aspect_ratio * viewport_height;
-        double focal_length = 1.0;
-        Vec3 focal_distance{0, 0, focal_length};
-        origin_ = Vec3(0, 0, 0);
-        horizontal_ = Vec3(viewport_width, 0.0, 0.0);
-        vertical_ = Vec3(0.0, viewport_height, 0.0);
-        lower_left_corner_ = origin_ - horizontal_/2 - vertical_/2 - focal_distance;
+
+        Vec3 w = unit_vector(origin - look_at);
+        Vec3 u = unit_vector(cross(view_up, w));
+        Vec3 v = cross(w, u);
+
+        horizontal_ = viewport_width * u;
+        vertical_ = viewport_height * v;
+        origin_ = origin;
+        lower_left_corner_ = origin_ - horizontal_/2 - vertical_/2 - w;
     }
 
     Ray ray_at(double u, double v) const {
